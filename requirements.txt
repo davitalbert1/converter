@@ -1,0 +1,7 @@
+# Python <-> C++ AI Code Converter
+# Dependências necessárias para o projeto:
+
+torch>=2.0.0
+transformers>=4.30.0
+tqdm>=4.65.0
+rich>=13.0.0
