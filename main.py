@@ -8,20 +8,11 @@ from pathlib import Path
 from converter import CodeConverter
 from train_model import train_ai_model
 
-
 def main():
-    parser = argparse.ArgumentParser(
-        description="Conversor Bidirecional de Código Python <-> C++ com IA e Mapeamento de Bibliotecas"
-    )
-    parser.add_argument(
-        "--file", "-f", type=str, help="Caminho do arquivo de código a ser convertido"
-    )
-    parser.add_argument(
-        "--code", "-c", type=str, help="Snippet de código passado diretamente como texto"
-    )
-    parser.add_argument(
-        "--output", "-o", type=str, help="Caminho do arquivo de saída (opcional)"
-    )
+    parser = argparse.ArgumentParser(description="Conversor Bidirecional de Código Python <-> C++ com IA e Mapeamento de Bibliotecas")
+    parser.add_argument("--file", "-f", type=str, help="Caminho do arquivo de código a ser convertido")
+    parser.add_argument("--code", "-c", type=str, help="Snippet de código passado diretamente como texto")
+    parser.add_argument("--output", "-o", type=str, help="Caminho do arquivo de saída (opcional)")
     parser.add_argument(
         "--direction",
         "-d",
@@ -38,12 +29,8 @@ def main():
         choices=["hybrid", "ai", "ast"],
         help="Modo de conversão: hybrid (IA + Estrutural), ai (Puramente Neural), ast (Estrutural)",
     )
-    parser.add_argument(
-        "--train", action="store_true", help="Dispara o treinamento do modelo de IA"
-    )
-    parser.add_argument(
-        "--epochs", type=int, default=15, help="Número de épocas para o treinamento da IA"
-    )
+    parser.add_argument("--train", action="store_true", help="Dispara o treinamento do modelo de IA")
+    parser.add_argument("--epochs", type=int, default=15, help="Número de épocas para o treinamento da IA")
 
     args = parser.parse_args()
 
@@ -74,7 +61,7 @@ def main():
     converter = CodeConverter()
     try:
         converted = converter.convert(source_code, direction=args.direction, mode=args.mode)
-        
+
         if args.output:
             Path(args.output).write_text(converted, encoding="utf-8")
             print(f"[OK] Código convertido salvo em: {args.output}")
@@ -84,11 +71,9 @@ def main():
             print("=" * 50)
             print(converted)
             print("=" * 50)
-
     except Exception as e:
         print(f"[!] Erro durante a conversão: {e}", file=sys.stderr)
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()

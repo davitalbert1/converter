@@ -1,14 +1,7 @@
-"""
-Transpiler estrutural bidirecional entre Python e C++.
-Converte a árvore de sintaxe abstrata (AST) de Python para C++
-e converte estruturas fundamentais de C++ para Python.
-"""
-
 import ast
 import re
-from typing import List, Dict, Any, Optional
+from typing import List, Dict
 from library_mapping import LibraryConverter
-
 
 class PythonToCppVisitor(ast.NodeVisitor):
     def __init__(self):
@@ -21,8 +14,7 @@ class PythonToCppVisitor(ast.NodeVisitor):
         return "    " * self.indent_level
 
     def visit_Module(self, node: ast.Module):
-        for stmt in node.body:
-            self.visit(stmt)
+        for stmt in node.body: self.visit(stmt)
 
     def visit_Import(self, node: ast.Import):
         for alias in node.names:
@@ -50,16 +42,14 @@ class PythonToCppVisitor(ast.NodeVisitor):
         for arg in node.args.args:
             arg_name = arg.arg
             arg_type = "auto"
-            if arg.annotation:
-                arg_type = self._map_type_annotation(arg.annotation)
+            if arg.annotation: arg_type = self._map_type_annotation(arg.annotation)
             params.append(f"{arg_type} {arg_name}")
 
         param_str = ", ".join(params)
         self.code_lines.append(f"{self.indent()}{ret_type} {node.name}({param_str}) {{")
         self.indent_level += 1
 
-        for stmt in node.body:
-            self.visit(stmt)
+        for stmt in node.body: self.visit(stmt)
 
         self.indent_level -= 1
         self.code_lines.append(f"{self.indent()}}}\n")
@@ -97,8 +87,7 @@ class PythonToCppVisitor(ast.NodeVisitor):
         test_str = self.visit_expr(node.test)
         self.code_lines.append(f"{self.indent()}if ({test_str}) {{")
         self.indent_level += 1
-        for stmt in node.body:
-            self.visit(stmt)
+        for stmt in node.body: self.visit(stmt)
         self.indent_level -= 1
 
         if node.orelse:
@@ -111,14 +100,12 @@ class PythonToCppVisitor(ast.NodeVisitor):
                 last_line = self.code_lines.pop()
                 self.code_lines.append(f"{last_line}if ({elif_test}) {{")
                 self.indent_level += 1
-                for stmt in elif_node.body:
-                    self.visit(stmt)
+                for stmt in elif_node.body: self.visit(stmt)
                 self.indent_level -= 1
                 if elif_node.orelse:
                     self.code_lines.append(f"{self.indent()}}} else {{")
                     self.indent_level += 1
-                    for stmt in elif_node.orelse:
-                        self.visit(stmt)
+                    for stmt in elif_node.orelse: self.visit(stmt)
                     self.indent_level -= 1
                     self.code_lines.append(f"{self.indent()}}}")
                 else:
@@ -126,8 +113,7 @@ class PythonToCppVisitor(ast.NodeVisitor):
             else:
                 self.code_lines.append(f"{self.indent()}}} else {{")
                 self.indent_level += 1
-                for stmt in node.orelse:
-                    self.visit(stmt)
+                for stmt in node.orelse: self.visit(stmt)
                 self.indent_level -= 1
                 self.code_lines.append(f"{self.indent()}}}")
         else:
@@ -137,8 +123,7 @@ class PythonToCppVisitor(ast.NodeVisitor):
         test_str = self.visit_expr(node.test)
         self.code_lines.append(f"{self.indent()}while ({test_str}) {{")
         self.indent_level += 1
-        for stmt in node.body:
-            self.visit(stmt)
+        for stmt in node.body: self.visit(stmt)
         self.indent_level -= 1
         self.code_lines.append(f"{self.indent()}}}")
 
@@ -160,10 +145,8 @@ class PythonToCppVisitor(ast.NodeVisitor):
                 stop = self.visit_expr(args[1])
                 step = self.visit_expr(args[2])
 
-            if step == "1":
-                incr = f"{target}++"
-            else:
-                incr = f"{target} += {step}"
+            if step == "1": incr = f"{target}++"
+            else: incr = f"{target} += {step}"
 
             self.code_lines.append(f"{self.indent()}for (int {target} = {start}; {target} < {stop}; {incr}) {{")
         else:
@@ -173,40 +156,31 @@ class PythonToCppVisitor(ast.NodeVisitor):
             self.code_lines.append(f"{self.indent()}for (const auto& {target} : {iterable}) {{")
 
         self.indent_level += 1
-        for stmt in node.body:
-            self.visit(stmt)
+        for stmt in node.body: self.visit(stmt)
         self.indent_level -= 1
         self.code_lines.append(f"{self.indent()}}}")
 
     def visit_Expr(self, node: ast.Expr):
         expr_str = self.visit_expr(node.value)
-        if expr_str:
-            self.code_lines.append(f"{self.indent()}{expr_str};")
+        if expr_str: self.code_lines.append(f"{self.indent()}{expr_str};")
 
     def visit_expr(self, node: ast.AST) -> str:
         if isinstance(node, ast.Constant):
-            if isinstance(node.value, str):
-                return f'"{node.value}"'
-            elif isinstance(node.value, bool):
-                return "true" if node.value else "false"
-            elif node.value is None:
-                return "nullptr"
+            if isinstance(node.value, str): return f'"{node.value}"'
+            elif isinstance(node.value, bool): return "true" if node.value else "false"
+            elif node.value is None: return "nullptr"
             return str(node.value)
-
         elif isinstance(node, ast.Name):
             return node.id
-
         elif isinstance(node, ast.BinOp):
             left = self.visit_expr(node.left)
             right = self.visit_expr(node.right)
             op = self._get_op_symbol(node.op)
             return f"({left} {op} {right})"
-
         elif isinstance(node, ast.UnaryOp):
             op = self._get_unary_op_symbol(node.op)
             operand = self.visit_expr(node.operand)
             return f"{op}{operand}"
-
         elif isinstance(node, ast.Compare):
             left = self.visit_expr(node.left)
             comparators = []
@@ -215,12 +189,10 @@ class PythonToCppVisitor(ast.NodeVisitor):
                 comp_str = self.visit_expr(comp)
                 comparators.append(f"{op_str} {comp_str}")
             return f"({left} {' '.join(comparators)})"
-
         elif isinstance(node, ast.BoolOp):
             op_str = " && " if isinstance(node.op, ast.And) else " || "
             values = [self.visit_expr(v) for v in node.values]
             return f"({op_str.join(values)})"
-
         elif isinstance(node, ast.Call):
             # Print especial
             if isinstance(node.func, ast.Name) and node.func.id == "print":
@@ -233,16 +205,13 @@ class PythonToCppVisitor(ast.NodeVisitor):
             func_name = self.visit_expr(node.func)
             args = [self.visit_expr(arg) for arg in node.args]
             return f"{func_name}({', '.join(args)})"
-
         elif isinstance(node, ast.List):
             elts = [self.visit_expr(e) for e in node.elts]
             self.includes.add("#include <vector>")
             return f"{{{', '.join(elts)}}}"
-
         elif isinstance(node, ast.Attribute):
             val = self.visit_expr(node.value)
             return f"{val}.{node.attr}"
-
         elif isinstance(node, ast.Subscript):
             val = self.visit_expr(node.value)
             idx = self.visit_expr(node.slice)
@@ -252,12 +221,9 @@ class PythonToCppVisitor(ast.NodeVisitor):
 
     def _infer_expr_type(self, node: ast.AST) -> str:
         if isinstance(node, ast.Constant):
-            if isinstance(node.value, bool):
-                return "bool"
-            if isinstance(node.value, int):
-                return "int"
-            if isinstance(node.value, float):
-                return "double"
+            if isinstance(node.value, bool): return "bool"
+            if isinstance(node.value, int): return "int"
+            if isinstance(node.value, float): return "double"
             if isinstance(node.value, str):
                 self.includes.add("#include <string>")
                 return "std::string"
@@ -278,8 +244,7 @@ class PythonToCppVisitor(ast.NodeVisitor):
                 "bool": "bool",
                 "None": "void",
             }
-            if node.id == "str":
-                self.includes.add("#include <string>")
+            if node.id == "str": self.includes.add("#include <string>")
             return mapping.get(node.id, "auto")
         return "auto"
 
@@ -295,11 +260,7 @@ class PythonToCppVisitor(ast.NodeVisitor):
         return ops.get(type(op), "+")
 
     def _get_unary_op_symbol(self, op: ast.AST) -> str:
-        ops = {
-            ast.Not: "!",
-            ast.USub: "-",
-            ast.UAdd: "+",
-        }
+        ops = {ast.Not: "!", ast.USub: "-", ast.UAdd: "+"}
         return ops.get(type(op), "+")
 
     def _get_comp_symbol(self, op: ast.AST) -> str:
@@ -313,13 +274,16 @@ class PythonToCppVisitor(ast.NodeVisitor):
         }
         return ops.get(type(op), "==")
 
-
 class CppToPythonTranspiler:
-    """Converte estruturas básicas de código C++ para Python."""
-
     @staticmethod
     def transpile(cpp_code: str) -> str:
         imports, clean_code = LibraryConverter.convert_cpp_includes(cpp_code)
+
+        # Normaliza quebras de linha para blocos e instruções C++ antes de remover ;
+        clean_code = re.sub(r"\{\s*", "{\n", clean_code)
+        clean_code = re.sub(r";\s*", ";\n", clean_code)
+        clean_code = re.sub(r"\}\s*", "\n}\n", clean_code)
+
         clean_code = LibraryConverter.convert_functions_cpp_to_py(clean_code)
 
         lines = clean_code.splitlines()
@@ -327,18 +291,15 @@ class CppToPythonTranspiler:
         indent_level = 0
 
         # Adiciona imports detectados
-        for imp in imports:
-            py_lines.append(imp)
-        if imports:
-            py_lines.append("")
+        for imp in imports: py_lines.append(imp)
+        if imports: py_lines.append("")
 
         i = 0
         while i < len(lines):
             line = lines[i].strip()
             i += 1
 
-            if not line:
-                continue
+            if not line: continue
 
             # Remove chaves de fechamento
             if line == "}":
@@ -441,8 +402,7 @@ class CppToPythonTranspiler:
             # Expressao simples / chamada de funcao terminando em ;
             stmt = line.rstrip(";").rstrip("{").strip()
             stmt = stmt.replace("true", "True").replace("false", "False").replace("nullptr", "None")
-            if stmt:
-                py_lines.append(" " * (indent_level * 4) + stmt)
+            if stmt: py_lines.append(" " * (indent_level * 4) + stmt)
 
         # Adiciona chamada if __name__ == '__main__': se houver main()
         if "def main():" in py_lines:
@@ -451,10 +411,7 @@ class CppToPythonTranspiler:
 
         return "\n".join(py_lines)
 
-
 class AstTranspiler:
-    """Interface unificada de transpilação por AST/Parser."""
-
     @staticmethod
     def python_to_cpp(py_code: str) -> str:
         # 1. Trata imports e chamadas de bibliotecas primeiro
@@ -475,8 +432,7 @@ class AstTranspiler:
         cpp_body = LibraryConverter.convert_functions_py_to_cpp(cpp_body)
 
         include_header = "\n".join(all_includes)
-        if include_header:
-            include_header += "\n\n"
+        if include_header: include_header += "\n\n"
 
         return include_header + cpp_body
 

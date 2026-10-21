@@ -1,9 +1,3 @@
-"""
-Script de treinamento da IA para conversão de código Python <-> C++.
-Implementa um modelo Seq2Seq baseado na arquitetura Transformer com PyTorch,
-treinado bidirecionalmente (Python -> C++ e C++ -> Python) incluindo bibliotecas.
-"""
-
 import os
 import math
 import json
@@ -24,10 +18,7 @@ TASK_CPP2PY = "<2py>"
 
 SPECIAL_TOKENS = [PAD_TOKEN, SOS_TOKEN, EOS_TOKEN, UNK_TOKEN, TASK_PY2CPP, TASK_CPP2PY]
 
-
 class CodeTokenizer:
-    """Tokenizador voltado para código-fonte preservando operadores e indentação."""
-
     def __init__(self):
         self.token2id: Dict[str, int] = {}
         self.id2token: Dict[int, str] = {}
@@ -65,17 +56,14 @@ class CodeTokenizer:
         self.add_token("<newline>")
         self.add_token("<indent>")
         for text in texts:
-            for tok in self.tokenize(text):
-                self.add_token(tok)
+            for tok in self.tokenize(text): self.add_token(tok)
 
     def encode(self, text: str, prefix_token: str = None) -> List[int]:
         tokens = self.tokenize(text)
         ids = []
-        if prefix_token:
-            ids.append(self.token2id.get(prefix_token, self.token2id[UNK_TOKEN]))
+        if prefix_token: ids.append(self.token2id.get(prefix_token, self.token2id[UNK_TOKEN]))
         ids.append(self.token2id[SOS_TOKEN])
-        for t in tokens:
-            ids.append(self.token2id.get(t, self.token2id[UNK_TOKEN]))
+        for t in tokens: ids.append(self.token2id.get(t, self.token2id[UNK_TOKEN]))
         ids.append(self.token2id[EOS_TOKEN])
         return ids
 
@@ -83,23 +71,17 @@ class CodeTokenizer:
         tokens = []
         for i in ids:
             tok = self.id2token.get(i, "")
-            if tok in (PAD_TOKEN, SOS_TOKEN, EOS_TOKEN, TASK_PY2CPP, TASK_CPP2PY):
-                continue
+            if tok in (PAD_TOKEN, SOS_TOKEN, EOS_TOKEN, TASK_PY2CPP, TASK_CPP2PY): continue
             tokens.append(tok)
 
         # Reconstrução do texto preservando quebras de linha e indentação
         code = ""
         for t in tokens:
-            if t == "<newline>":
-                code += "\n"
-            elif t == "<indent>":
-                code += "    "
-            elif t in (",", ";", ")", "}", "]"):
-                code = code.rstrip(" ") + t + " "
-            elif t in ("(", "{", "["):
-                code += t
-            else:
-                code += t + " "
+            if t == "<newline>": code += "\n"
+            elif t == "<indent>": code += "    "
+            elif t in (",", ";", ")", "}", "]"): code = code.rstrip(" ") + t + " "
+            elif t in ("(", "{", "["): code += t
+            else: code += t + " "
 
         return code.strip()
 
@@ -109,8 +91,7 @@ class CodeTokenizer:
 
     @classmethod
     def load(cls, filepath: str):
-        with open(filepath, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        with open(filepath, "r", encoding="utf-8") as f: data = json.load(f)
         tok = cls()
         tok.token2id = data["token2id"]
         tok.id2token = {v: k for k, v in tok.token2id.items()}
@@ -119,7 +100,6 @@ class CodeTokenizer:
     @property
     def vocab_size(self) -> int:
         return len(self.token2id)
-
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model: int, max_len: int = 2048):
@@ -134,10 +114,7 @@ class PositionalEncoding(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x + self.pe[:, :x.size(1)]
 
-
 class CodeSeq2SeqTransformer(nn.Module):
-    """Arquitetura Transformer Seq2Seq completa para tradução de código."""
-
     def __init__(
         self,
         vocab_size: int,
@@ -169,9 +146,7 @@ class CodeSeq2SeqTransformer(nn.Module):
         self.fc_out = nn.Linear(d_model, vocab_size)
 
     def generate_square_subsequent_mask(self, sz: int, device: torch.device) -> torch.Tensor:
-        mask = (torch.triu(torch.ones((sz, sz), device=device)) == 1).transpose(0, 1)
-        mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
-        return mask
+        return torch.triu(torch.ones((sz, sz), device=device, dtype=torch.bool), diagonal=1)
 
     def create_pad_mask(self, tensor: torch.Tensor) -> torch.Tensor:
         return tensor == self.pad_idx
@@ -193,7 +168,6 @@ class CodeSeq2SeqTransformer(nn.Module):
         )
         return self.fc_out(out)
 
-
 class ParallelCodeDataset(Dataset):
     def __init__(self, pairs: List[Dict[str, str]], tokenizer: CodeTokenizer):
         self.samples = []
@@ -214,7 +188,6 @@ class ParallelCodeDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[List[int], List[int]]:
         return self.samples[idx]
 
-
 def collate_fn(batch: List[Tuple[List[int], List[int]]], pad_idx: int):
     src_batch, tgt_batch = zip(*batch)
     max_src_len = max(len(s) for s in src_batch)
@@ -225,11 +198,10 @@ def collate_fn(batch: List[Tuple[List[int], List[int]]], pad_idx: int):
 
     return torch.tensor(padded_src, dtype=torch.long), torch.tensor(padded_tgt, dtype=torch.long)
 
-
-def train_ai_model(epochs: int = 15, batch_size: int = 8, lr: float = 1e-3, checkpoint_dir: str = "checkpoints"):
+def train_ai_model(epochs: int = 15, batch_size: int = 16, lr: float = 1e-3, checkpoint_dir: str = "checkpoints"):
     os.makedirs(checkpoint_dir, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"[IA] Dispositivo selecionado para treinamento: {device}")
+    print(f"[IA] Dispositivo selecionado para treinamento: {device}", flush=True)
 
     # 1. Carrega dados e constrói tokenizer
     pairs = get_augmented_dataset()
@@ -238,7 +210,7 @@ def train_ai_model(epochs: int = 15, batch_size: int = 8, lr: float = 1e-3, chec
     tokenizer.build_vocab(all_texts)
     vocab_path = os.path.join(checkpoint_dir, "vocab.json")
     tokenizer.save(vocab_path)
-    print(f"[IA] Vocabulário construído com {tokenizer.vocab_size} tokens salvo em {vocab_path}")
+    print(f"[IA] Vocabulário construído com {tokenizer.vocab_size} tokens salvo em {vocab_path}", flush=True)
 
     # 2. Prepara dataset e dataloader
     dataset = ParallelCodeDataset(pairs, tokenizer)
@@ -248,7 +220,7 @@ def train_ai_model(epochs: int = 15, batch_size: int = 8, lr: float = 1e-3, chec
         shuffle=True,
         collate_fn=lambda b: collate_fn(b, tokenizer.token2id[PAD_TOKEN]),
     )
-    print(f"[IA] Dataset bidirecional carregado com {len(dataset)} amostras de treino.")
+    print(f"[IA] Dataset bidirecional carregado com {len(dataset)} amostras de treino.", flush=True)
 
     # 3. Instancia modelo
     pad_idx = tokenizer.token2id[PAD_TOKEN]
@@ -269,7 +241,7 @@ def train_ai_model(epochs: int = 15, batch_size: int = 8, lr: float = 1e-3, chec
     best_loss = float("inf")
     model_save_path = os.path.join(checkpoint_dir, "best_model.pt")
 
-    print("[IA] Iniciando treinamento da rede neural Transformer...")
+    print("[IA] Iniciando treinamento da rede neural Transformer...", flush=True)
     model.train()
     for epoch in range(1, epochs + 1):
         total_loss = 0.0
@@ -292,6 +264,7 @@ def train_ai_model(epochs: int = 15, batch_size: int = 8, lr: float = 1e-3, chec
         avg_loss = total_loss / len(dataloader)
         if avg_loss < best_loss:
             best_loss = avg_loss
+            tmp_path = model_save_path + ".tmp"
             torch.save(
                 {
                     "epoch": epoch,
@@ -299,15 +272,17 @@ def train_ai_model(epochs: int = 15, batch_size: int = 8, lr: float = 1e-3, chec
                     "loss": best_loss,
                     "vocab_size": tokenizer.vocab_size,
                 },
-                model_save_path,
+                tmp_path,
             )
+            if os.path.exists(model_save_path):
+                os.remove(model_save_path)
+            os.rename(tmp_path, model_save_path)
 
         if epoch % 5 == 0 or epoch == 1 or epoch == epochs:
-            print(f"  -> Época {epoch:02d}/{epochs:02d} | Perda média (Loss): {avg_loss:.4f} (Melhor: {best_loss:.4f})")
+            print(f"  -> Época {epoch:02d}/{epochs:02d} | Perda média (Loss): {avg_loss:.4f} (Melhor: {best_loss:.4f})", flush=True)
 
-    print(f"[IA] Treinamento concluído com sucesso! Modelo salvo em: {model_save_path}")
+    print(f"[IA] Treinamento concluído com sucesso! Modelo salvo em: {model_save_path}", flush=True)
     return model, tokenizer
-
 
 if __name__ == "__main__":
     import argparse

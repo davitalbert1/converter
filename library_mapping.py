@@ -1,9 +1,4 @@
-"""
-Mapeamento inteligente de bibliotecas e módulos entre Python e C++.
-Converte tanto as declarações de import / #include quanto as chamadas de funções equivalentes.
-"""
-
-from typing import Dict, List, Set, Tuple
+from typing import List, Set, Tuple
 import re
 
 # Mapeamento de imports Python -> C++
@@ -58,7 +53,7 @@ PY_TO_CPP_FUNCTIONS = {
 
     # sys
     r"sys\.exit\((.*?)\)": r"std::exit(\1)",
-    
+
     # print e input
     r"print\((.*?)\)": r"std::cout << \1 << std::endl",
     r"len\((.*?)\)": r"\1.size()",
@@ -123,16 +118,9 @@ CPP_TO_PY_FUNCTIONS = {
     r"std::exit\((.*?)\);?": r"sys.exit(\1)",
 }
 
-
 class LibraryConverter:
-    """Gerencia a detecção e conversão de bibliotecas e chamadas de métodos."""
-
     @staticmethod
     def convert_python_imports(code: str) -> Tuple[List[str], str]:
-        """
-        Detecta imports no código Python e retorna os #includes C++ correspondentes
-        e o código sem as linhas de import.
-        """
         detected_cpp_includes: Set[str] = set()
         clean_lines: List[str] = []
 
@@ -165,10 +153,6 @@ class LibraryConverter:
 
     @staticmethod
     def convert_cpp_includes(code: str) -> Tuple[List[str], str]:
-        """
-        Detecta #include no código C++ e retorna os imports Python correspondentes
-        e o código sem as linhas de #include.
-        """
         detected_py_imports: Set[str] = set()
         clean_lines: List[str] = []
 
@@ -180,11 +164,9 @@ class LibraryConverter:
                 header = m.group(1).replace('"', "")
                 header_key = f"<{header}>" if not header.startswith("<") else header
                 if header_key in CPP_TO_PY_IMPORTS:
-                    for imp in CPP_TO_PY_IMPORTS[header_key]:
-                        detected_py_imports.add(imp)
+                    for imp in CPP_TO_PY_IMPORTS[header_key]: detected_py_imports.add(imp)
                 elif header in CPP_TO_PY_IMPORTS:
-                    for imp in CPP_TO_PY_IMPORTS[header]:
-                        detected_py_imports.add(imp)
+                    for imp in CPP_TO_PY_IMPORTS[header]: detected_py_imports.add(imp)
             else:
                 clean_lines.append(line)
 
@@ -192,7 +174,6 @@ class LibraryConverter:
 
     @staticmethod
     def convert_functions_py_to_cpp(code: str) -> str:
-        """Substitui chamadas de métodos e funções Python para C++."""
         converted = code
         for pattern, replacement in PY_TO_CPP_FUNCTIONS.items():
             converted = re.sub(pattern, replacement, converted)
@@ -200,7 +181,6 @@ class LibraryConverter:
 
     @staticmethod
     def convert_functions_cpp_to_py(code: str) -> str:
-        """Substitui chamadas de métodos e funções C++ para Python."""
         converted = code
         for pattern, replacement in CPP_TO_PY_FUNCTIONS.items():
             converted = re.sub(pattern, replacement, converted)

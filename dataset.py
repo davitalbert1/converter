@@ -1,9 +1,4 @@
-"""
-Dataset sintético e estruturado com pares bidirecionais de código Python <-> C++,
-focando em controle de fluxo, funções, algoritmos e mapeamento de bibliotecas.
-"""
-
-from typing import List, Tuple, Dict
+from typing import List, Dict
 import json
 
 DATASET_PAIRS = [
@@ -82,11 +77,9 @@ DATASET_PAIRS = [
     },
 ]
 
-
 def get_augmented_dataset() -> List[Dict[str, str]]:
-    """Gera dataset expandido com variações de nomes e parâmetros."""
     dataset = list(DATASET_PAIRS)
-    
+
     # Adiciona variações sintéticas
     variations = [
         ("radius", "r"),
@@ -106,13 +99,10 @@ def get_augmented_dataset() -> List[Dict[str, str]]:
 
     return dataset
 
-
 def save_dataset_json(filepath: str = "dataset.json"):
     data = get_augmented_dataset()
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    with open(filepath, "w", encoding="utf-8") as f: json.dump(data, f, indent=2, ensure_ascii=False)
     print(f"Dataset salvo com {len(data)} exemplos em {filepath}")
-
 
 if __name__ == "__main__":
     save_dataset_json()

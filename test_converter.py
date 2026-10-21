@@ -1,12 +1,5 @@
-"""
-Testes automatizados completos do conversor bidirecional de código Python <-> C++.
-Valida mapeamento de bibliotecas, conversão estrutural e uso do modelo de IA treinado.
-"""
-
-import os
 from converter import CodeConverter
 from train_model import train_ai_model
-
 
 def test_python_to_cpp():
     print("\n" + "=" * 60)
@@ -37,7 +30,6 @@ def compute_metrics(radius):
     assert "#include <chrono>" in cpp_code or "#include <thread>" in cpp_code, "Deveria conter includes de chrono/thread"
     assert "M_PI" in cpp_code or "std::pow" in cpp_code, "Deveria converter math.pi/pow para C++"
     print("\n[OK] Teste 1 passou com sucesso!")
-
 
 def test_cpp_to_python():
     print("\n" + "=" * 60)
@@ -72,7 +64,6 @@ int main() {
     assert "def calculate_hypotenuse" in py_code, "Deveria converter declaracao de funcao para Python"
     print("\n[OK] Teste 2 passou com sucesso!")
 
-
 def test_ai_training_and_inference():
     print("\n" + "=" * 60)
     print("TESTE 3: Treinamento e Inferência do Modelo de IA Transformer")
@@ -80,7 +71,7 @@ def test_ai_training_and_inference():
 
     # Executa o treino por 10 épocas
     print("Treinando modelo de IA por 10 épocas...")
-    train_ai_model(epochs=10, batch_size=4)
+    train_ai_model(epochs=10, batch_size=16)
 
     converter = CodeConverter()
     assert converter.ai_engine.is_model_available(), "Checkpoint do modelo de IA deveria existir!"
@@ -93,7 +84,6 @@ def test_ai_training_and_inference():
     print(pred_cpp)
 
     print("\n[OK] Teste 3 passou com sucesso! Modelo treinado e integrado ao conversor.")
-
 
 if __name__ == "__main__":
     test_python_to_cpp()

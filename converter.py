@@ -1,39 +1,14 @@
-"""
-Módulo Principal do Conversor de Código Python <-> C++.
-Integra o Motor de IA, o Conversor de Bibliotecas e o Transpiler Estrutural.
-"""
-
-from typing import Optional, Dict, Any
 import re
-from library_mapping import LibraryConverter
 from ast_transpiler import AstTranspiler
 from ai_engine import AIEngine
 
-
 class CodeConverter:
-    """
-    Conversor bidirecional de código entre Python e C++.
-    Suporta conversão estrutural de sintaxe, conversão inteligente de bibliotecas/imports
-    e integração com modelo de Inteligência Artificial treinado.
-    """
-
     def __init__(self, checkpoint_dir: str = "checkpoints"):
         self.ai_engine = AIEngine(checkpoint_dir=checkpoint_dir)
 
     def convert(self, source_code: str, direction: str = "auto", mode: str = "hybrid") -> str:
-        """
-        Converte o código de entrada.
-
-        :param source_code: Código fonte a ser convertido.
-        :param direction: 'py2cpp', 'cpp2py' ou 'auto'.
-        :param mode: 'hybrid' (IA + AST/Estrutural), 'ai' (Puramente Neural) ou 'ast' (Estrutural).
-        :return: Código convertido na nova linguagem.
-        """
-        if direction == "auto":
-            direction = self.detect_direction(source_code)
-
-        if direction not in ("py2cpp", "cpp2py"):
-            raise ValueError(f"Direção inválida '{direction}'. Use 'py2cpp', 'cpp2py' ou 'auto'.")
+        if direction == "auto": direction = self.detect_direction(source_code)
+        if direction not in ("py2cpp", "cpp2py"): raise ValueError(f"Direção inválida '{direction}'. Use 'py2cpp', 'cpp2py' ou 'auto'.")
 
         # Modo 1: Puramente IA
         if mode == "ai":
@@ -52,11 +27,6 @@ class CodeConverter:
         return self._convert_hybrid(source_code, direction)
 
     def _convert_hybrid(self, source_code: str, direction: str) -> str:
-        """
-        Abordagem híbrida:
-        1. Utiliza a IA treinada para detectar itens semânticos e gerar predições.
-        2. Aplica transpilação estrutural e substituição precisa de bibliotecas exclusivas.
-        """
         if direction == "py2cpp":
             # Converte usando o AST Transpiler com suporte a bibliotecas
             converted_code = AstTranspiler.python_to_cpp(source_code)
@@ -68,13 +38,11 @@ class CodeConverter:
                     ai_detected = self.ai_engine.detect_imports_with_ai(source_code)
                     for lib in ai_detected:
                         inc = f"#include <{lib}>"
-                        if inc not in converted_code:
-                            converted_code = f"{inc}\n" + converted_code
+                        if inc not in converted_code: converted_code = f"{inc}\n" + converted_code
                 except Exception:
                     pass
 
             return converted_code
-
         else: # cpp2py
             # Converte usando o C++ to Python Transpiler
             converted_code = AstTranspiler.cpp_to_python(source_code)
@@ -82,7 +50,6 @@ class CodeConverter:
 
     @staticmethod
     def detect_direction(code: str) -> str:
-        """Detecta automaticamente se o código é Python ou C++."""
         cpp_indicators = [
             r"#include",
             r"std::",

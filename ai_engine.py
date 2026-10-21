@@ -1,25 +1,9 @@
-"""
-Módulo de inferência da IA (AI Engine).
-Carrega os pesos do modelo Transformer treinado e executa a conversão neural de código.
-"""
-
 import os
 from typing import Optional
 import torch
-from train_model import (
-    CodeTokenizer,
-    CodeSeq2SeqTransformer,
-    PAD_TOKEN,
-    SOS_TOKEN,
-    EOS_TOKEN,
-    TASK_PY2CPP,
-    TASK_CPP2PY,
-)
-
+from train_model import CodeTokenizer, CodeSeq2SeqTransformer, PAD_TOKEN, SOS_TOKEN, EOS_TOKEN, TASK_PY2CPP, TASK_CPP2PY
 
 class AIEngine:
-    """Motor neural para tradução e auxílio na conversão de código."""
-
     def __init__(self, checkpoint_dir: str = "checkpoints"):
         self.checkpoint_dir = checkpoint_dir
         self.model_path = os.path.join(checkpoint_dir, "best_model.pt")
@@ -27,42 +11,38 @@ class AIEngine:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model: Optional[CodeSeq2SeqTransformer] = None
         self.tokenizer: Optional[CodeTokenizer] = None
-
-        if self.is_model_available():
-            self.load_model()
+        if self.is_model_available(): self.load_model()
 
     def is_model_available(self) -> bool:
+        if self.model is not None and self.tokenizer is not None: return True
         return os.path.exists(self.model_path) and os.path.exists(self.vocab_path)
 
     def load_model(self):
-        """Carrega vocabulário e pesos treinados do modelo."""
-        self.tokenizer = CodeTokenizer.load(self.vocab_path)
-        pad_idx = self.tokenizer.token2id[PAD_TOKEN]
+        try:
+            self.tokenizer = CodeTokenizer.load(self.vocab_path)
+            pad_idx = self.tokenizer.token2id[PAD_TOKEN]
 
-        self.model = CodeSeq2SeqTransformer(
-            vocab_size=self.tokenizer.vocab_size,
-            d_model=128,
-            nhead=4,
-            num_encoder_layers=3,
-            num_decoder_layers=3,
-            dim_feedforward=256,
-            dropout=0.1,
-            pad_idx=pad_idx,
-        ).to(self.device)
+            self.model = CodeSeq2SeqTransformer(
+                vocab_size=self.tokenizer.vocab_size,
+                d_model=128,
+                nhead=4,
+                num_encoder_layers=3,
+                num_decoder_layers=3,
+                dim_feedforward=256,
+                dropout=0.1,
+                pad_idx=pad_idx,
+            ).to(self.device)
 
-        checkpoint = torch.load(self.model_path, map_location=self.device)
-        self.model.load_state_dict(checkpoint["model_state_dict"])
-        self.model.eval()
+            checkpoint = torch.load(self.model_path, map_location=self.device)
+            self.model.load_state_dict(checkpoint["model_state_dict"])
+            self.model.eval()
+        except Exception as e:
+            print(f"[!] Aviso: Falha ao carregar checkpoint do modelo ({e}). O conversor usará o motor estrutural.")
+            self.model = None
+            self.tokenizer = None
 
     def translate_neural(self, code: str, direction: str = "py2cpp", max_length: int = 150) -> str:
-        """
-        Executa a tradução de código usando inferência autoregressiva (Greedy Search)
-        no modelo Transformer.
-        """
-        if not self.is_model_available():
-            raise RuntimeError(
-                "Modelo de IA não encontrado! Execute 'py train_model.py' primeiro para treinar o modelo."
-            )
+        if not self.is_model_available(): raise RuntimeError("Modelo de IA não encontrado! Execute 'py train_model.py' primeiro para treinar o modelo.")
 
         task_token = TASK_PY2CPP if direction == "py2cpp" else TASK_CPP2PY
         src_ids = self.tokenizer.encode(code, prefix_token=task_token)
@@ -81,18 +61,12 @@ class AIEngine:
                 next_token_id = output[:, -1, :].argmax(dim=-1).item()
                 tgt_ids.append(next_token_id)
 
-                if next_token_id == eos_id:
-                    break
+                if next_token_id == eos_id: break
 
         return self.tokenizer.decode(tgt_ids)
 
     def detect_imports_with_ai(self, code: str) -> list:
-        """
-        Usa o vocabulário e representação da IA para identificar bibliotecas
-        e dependências no código de entrada.
-        """
-        if not self.tokenizer:
-            return []
+        if not self.tokenizer: return []
         tokens = self.tokenizer.tokenize(code)
         detected = []
         lib_keywords = {
@@ -103,6 +77,5 @@ class AIEngine:
             "sys": "iostream",
         }
         for t in tokens:
-            if t in lib_keywords and lib_keywords[t] not in detected:
-                detected.append(lib_keywords[t])
+            if t in lib_keywords and lib_keywords[t] not in detected: detected.append(lib_keywords[t])
         return detected
