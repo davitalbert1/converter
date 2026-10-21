@@ -1,10 +1,14 @@
 import re
 from ast_transpiler import AstTranspiler
 from ai_engine import AIEngine
+from library_mapping import LibraryConverter
 
 class CodeConverter:
-    def __init__(self, checkpoint_dir: str = "checkpoints"):
+    def __init__(self, checkpoint_dir: str = "checkpoints", mappings_dir: str = None):
         self.ai_engine = AIEngine(checkpoint_dir=checkpoint_dir)
+        if mappings_dir:
+            LibraryConverter.set_mappings_dir(mappings_dir)
+        self.loader = LibraryConverter.get_loader()
 
     def convert(self, source_code: str, direction: str = "auto", mode: str = "hybrid") -> str:
         if direction == "auto": direction = self.detect_direction(source_code)
@@ -29,12 +33,11 @@ class CodeConverter:
     def _convert_hybrid(self, source_code: str, direction: str) -> str:
         if direction == "py2cpp":
             # Converte usando o AST Transpiler com suporte a bibliotecas
-            converted_code = AstTranspiler.python_to_cpp(source_code)
+            converted_code = AstTranspiler.python_to_cpp(source_code, loader=self.loader)
 
-            # Se o modelo neural estiver disponível, podemos usá-lo para refinar ou complementar
+            # Se o modelo neural estiver disponível, usamos para detectar bibliotecas adicionais
             if self.ai_engine.is_model_available():
                 try:
-                    # IA detecta bibliotecas implícitas adicionais
                     ai_detected = self.ai_engine.detect_imports_with_ai(source_code)
                     for lib in ai_detected:
                         inc = f"#include <{lib}>"
@@ -45,7 +48,7 @@ class CodeConverter:
             return converted_code
         else: # cpp2py
             # Converte usando o C++ to Python Transpiler
-            converted_code = AstTranspiler.cpp_to_python(source_code)
+            converted_code = AstTranspiler.cpp_to_python(source_code, loader=self.loader)
             return converted_code
 
     @staticmethod

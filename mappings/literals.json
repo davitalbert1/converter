@@ -1,0 +1,8 @@
+{
+  "cpp_true": "true",
+  "cpp_false": "false",
+  "cpp_null": "nullptr",
+  "py_true": "True",
+  "py_false": "False",
+  "py_none": "None"
+}

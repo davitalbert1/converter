@@ -1,7 +1,9 @@
 import os
+import re
 from typing import Optional
 import torch
 from train_model import CodeTokenizer, CodeSeq2SeqTransformer, PAD_TOKEN, SOS_TOKEN, EOS_TOKEN, TASK_PY2CPP, TASK_CPP2PY
+from library_mapping import LibraryConverter
 
 class AIEngine:
     def __init__(self, checkpoint_dir: str = "checkpoints"):
@@ -66,16 +68,29 @@ class AIEngine:
         return self.tokenizer.decode(tgt_ids)
 
     def detect_imports_with_ai(self, code: str) -> list:
-        if not self.tokenizer: return []
-        tokens = self.tokenizer.tokenize(code)
+        """Detecta bibliotecas usadas no codigo e retorna os nomes dos
+        headers C++ correspondentes, com base nos mapeamentos externos
+        (sem hardcode de pares de linguagem)."""
+        loader = LibraryConverter.get_loader()
         detected = []
-        lib_keywords = {
-            "math": "cmath",
-            "json": "nlohmann/json.hpp",
-            "time": "chrono",
-            "os": "filesystem",
-            "sys": "iostream",
-        }
-        for t in tokens:
-            if t in lib_keywords and lib_keywords[t] not in detected: detected.append(lib_keywords[t])
+        import_pattern = re.compile(
+            r"^\s*(?:import\s+([a-zA-Z0-9_\.,\s]+)|from\s+([a-zA-Z0-9_\.]+)\s+import\s+.*)",
+            re.MULTILINE,
+        )
+        for m in import_pattern.finditer(code):
+            if m.group(1):
+                modules = [mod.strip().split()[0] for mod in m.group(1).split(",")]
+            else:
+                modules = [m.group(2).strip()]
+            for mod in modules:
+                base_mod = mod.split(".")[0]
+                key = (
+                    mod if mod in loader.py_to_cpp_imports
+                    else (base_mod if base_mod in loader.py_to_cpp_imports else None)
+                )
+                if key:
+                    for inc in loader.py_to_cpp_imports[key]:
+                        header = inc.replace("#include <", "").replace(">", "").replace('"', "")
+                        if header not in detected:
+                            detected.append(header)
         return detected

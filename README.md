@@ -31,14 +31,15 @@ Este projeto implementa uma solução completa e robusta em Python capaz de conv
 ```
 F:\converter\
 ├── requirements.txt      # Dependências do projeto (torch, transformers, rich, etc.)
-├── library_mapping.py    # Dicionários de mapeamento e regras de bibliotecas e funções
+├── library_mapping.py    # Carrega mapeamentos de bibliotecas e funções a partir de JSONs externos
 ├── ast_transpiler.py     # Transpiler de árvore sintática (AST) e parser estrutural
-├── dataset.py            # Gerador de dataset paralelo Python <-> C++
+├── dataset.py            # Gerador/carregador de dataset paralelo Python <-> C++
 ├── train_model.py        # Script completo de treinamento do modelo de IA Transformer
 ├── ai_engine.py          # Motor de inferência e predição neural do modelo treinado
 ├── converter.py          # Classe principal CodeConverter (modo hybrid, ai e ast)
 ├── main.py               # Interface de linha de comando (CLI)
 ├── test_converter.py     # Suíte de testes automatizados de ponta a ponta
+├── mappings/             # Mapeamentos JSON de linguagem (imports, funções, tipos, operadores, literais, sintaxe)
 └── checkpoints/          # Diretório onde os modelos treinados (.pt e vocab.json) são salvos
 ```
 
@@ -154,4 +155,48 @@ O arquivo `test_converter.py` testa todo o pipeline: conversão de bibliotecas e
 
 ```bash
 py test_converter.py
+```
+
+## 🧩 Extensibilidade sem hardcode
+
+Todo o conhecimento de linguagem (imports, funções, tipos, operadores,
+literais e padrões sintáticos) está em arquivos JSON dentro de `mappings/`.
+O código-fonte **não contém hardcode de pares Python <-> C++**: o motor de
+conversão é genérico e guiado por configuração.
+
+Para adicionar suporte a uma **nova biblioteca ou função**, basta editar ou
+acrescentar entradas nos JSONs de `mappings/`, sem alterar nenhuma linha de
+Python.
+
+Exemplo: para suportar uma biblioteca fictícia `mylib`, crie um diretório
+`meus_mapeamentos/` com:
+
+- `py_to_cpp_imports.json`: `{ "mylib": ["#include <mylib.h>"] }`
+- `py_to_cpp_functions.json`: `{ "mylib\.foo\((.*?)\)": "mylib_foo(\1)" }`
+
+E use o conversor apontando para esse diretório (ele é **mesclado** aos
+mapeamentos padrão):
+
+```bash
+py main.py --code "import mylib
+x = mylib.foo(42)" --mappings-dir meus_mapeamentos
+```
+
+Arquivos JSON disponíveis em `mappings/`:
+- `py_to_cpp_imports.json` / `cpp_to_py_imports.json` — imports ↔ includes
+- `py_to_cpp_functions.json` / `cpp_to_py_functions.json` — chamadas de função
+- `type_annotations.json` — anotações de tipo Python → C++
+- `operators.json` — operadores da AST Python → símbolos C++
+- `literals.json` — literais (verdadeiro/falso/nulo)
+- `syntax.json` — padrões sintáticos do C++ (main, função, for, while, if,
+  atribuição, return)
+
+O treinamento da IA também aceita um dataset externo, evitando pares de treino
+hardcoded:
+```bash
+py train_model.py --dataset pares_treino.json --epochs 15
+```
+ou
+```bash
+py main.py --train --dataset pares_treino.json
 ```

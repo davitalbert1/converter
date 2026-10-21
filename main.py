@@ -29,6 +29,12 @@ def main():
         choices=["hybrid", "ai", "ast"],
         help="Modo de conversão: hybrid (IA + Estrutural), ai (Puramente Neural), ast (Estrutural)",
     )
+    parser.add_argument(
+        "--mappings-dir",
+        type=str,
+        default=None,
+        help="Diretorio customizado contendo os mapeamentos JSON (imports, funcoes, tipos, operadores, sintaxe).",
+    )
     parser.add_argument("--train", action="store_true", help="Dispara o treinamento do modelo de IA")
     parser.add_argument("--epochs", type=int, default=15, help="Número de épocas para o treinamento da IA")
 
@@ -58,7 +64,7 @@ def main():
         print("[!] Nenhum código fornecido.", file=sys.stderr)
         sys.exit(1)
 
-    converter = CodeConverter()
+    converter = CodeConverter(mappings_dir=args.mappings_dir)
     try:
         converted = converter.convert(source_code, direction=args.direction, mode=args.mode)
 

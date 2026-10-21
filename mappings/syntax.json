@@ -1,0 +1,20 @@
+{
+  "cpp_type_keywords": ["int", "double", "float", "std::string", "auto", "bool", "long", "char", "size_t", "void", "const"],
+  "cpp_bool_true": "true",
+  "cpp_bool_false": "false",
+  "cpp_null": "nullptr",
+  "py_bool_true": "True",
+  "py_bool_false": "False",
+  "py_none": "None",
+  "main_pattern": "(?:int|void)\\s+main\\s*\\([^)]*\\)\\s*\\{?",
+  "func_decl_pattern": "(?:(?:int|double|float|void|std::string|bool|auto|long|char|size_t)\\s+)+([a-zA-Z_]\\w*)\\s*\\(([^)]*)\\)\\s*\\{?",
+  "for_standard_pattern": "for\\s*\\(\\s*(?:int|size_t|auto|long|char)?\\s*([a-zA-Z_]\\w*)\\s*=\\s*([^;]+);\\s*\\1\\s*<\\s*([^;]+);\\s*(?:\\+\\+\\1|\\1\\+\\+|\\1\\s*\\+=\\s*1)\\s*\\)\\s*\\{?",
+  "for_range_pattern": "for\\s*\\([^:]*?\\s+([a-zA-Z_]\\w*)\\s*:\\s*([^)]+)\\)\\s*\\{?",
+  "while_pattern": "while\\s*\\((.*?)\\)\\s*\\{?",
+  "if_pattern": "if\\s*\\((.*?)\\)\\s*\\{?",
+  "elif_pattern": "}\\s*else\\s+if\\s*\\((.*?)\\)\\s*\\{?",
+  "else_pattern": "}\\s*else\\s*\\{?",
+  "assign_pattern": "(?:(?:int|double|float|std::string|auto|bool|long|char|size_t)\\s+)?([a-zA-Z_]\\w*)\\s*=\\s*(.*?);",
+  "ret_pattern": "return(?:\\s+(.*?))?;",
+  "var_decl_pattern": "(?:int|double|float|std::string|auto|bool|long|char|size_t|const)\\s+([a-zA-Z_]\\w*)\\s*="
+}

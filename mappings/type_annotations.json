@@ -1,0 +1,11 @@
+{
+  "int": "int",
+  "float": "double",
+  "str": "std::string",
+  "bool": "bool",
+  "None": "void",
+  "list": "std::vector<auto>",
+  "dict": "std::unordered_map<auto, auto>",
+  "set": "std::set<auto>",
+  "tuple": "std::tuple<auto, auto>"
+}

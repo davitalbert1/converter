@@ -198,13 +198,13 @@ def collate_fn(batch: List[Tuple[List[int], List[int]]], pad_idx: int):
 
     return torch.tensor(padded_src, dtype=torch.long), torch.tensor(padded_tgt, dtype=torch.long)
 
-def train_ai_model(epochs: int = 15, batch_size: int = 16, lr: float = 1e-3, checkpoint_dir: str = "checkpoints"):
+def train_ai_model(epochs: int = 15, batch_size: int = 16, lr: float = 1e-3, checkpoint_dir: str = "checkpoints", dataset_path: str = None):
     os.makedirs(checkpoint_dir, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[IA] Dispositivo selecionado para treinamento: {device}", flush=True)
 
-    # 1. Carrega dados e constrói tokenizer
-    pairs = get_augmented_dataset()
+    # 1. Carrega dados e constrói tokenizer (de arquivo JSON externo ou pares embutidos)
+    pairs = get_augmented_dataset(dataset_path)
     tokenizer = CodeTokenizer()
     all_texts = [p["py"] for p in pairs] + [p["cpp"] for p in pairs]
     tokenizer.build_vocab(all_texts)
@@ -290,6 +290,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=15, help="Número de épocas")
     parser.add_argument("--batch-size", type=int, default=8, help="Tamanho do batch")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
+    parser.add_argument("--dataset", type=str, default=None, help="Caminho para JSON externo com pares de treino [{py, cpp}] (opcional).")
     args = parser.parse_args()
 
-    train_ai_model(epochs=args.epochs, batch_size=args.batch_size, lr=args.lr)
+    train_ai_model(epochs=args.epochs, batch_size=args.batch_size, lr=args.lr, dataset_path=args.dataset)

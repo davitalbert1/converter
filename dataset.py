@@ -1,5 +1,6 @@
 from typing import List, Dict
 import json
+import os
 
 DATASET_PAIRS = [
     # 1. Biblioteca math / cmath
@@ -77,8 +78,22 @@ DATASET_PAIRS = [
     },
 ]
 
-def get_augmented_dataset() -> List[Dict[str, str]]:
-    dataset = list(DATASET_PAIRS)
+def _load_dataset_pairs(filepath: str) -> List[Dict[str, str]]:
+    """Carrega pares de treino de um arquivo JSON externo, se fornecido.
+    Caso contrario, usa os pares embutidos (DATASET_PAIRS)."""
+    if filepath and os.path.exists(filepath):
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, list):
+                return data
+        except (json.JSONDecodeError, OSError):
+            pass
+    return list(DATASET_PAIRS)
+
+
+def get_augmented_dataset(filepath: str = None) -> List[Dict[str, str]]:
+    dataset = _load_dataset_pairs(filepath)
 
     # Adiciona variações sintéticas
     variations = [
